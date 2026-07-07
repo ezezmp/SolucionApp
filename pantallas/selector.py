@@ -9,7 +9,7 @@ def pantalla_selector():
     # ── VOLVER AL INICIO (index.html) ────────────────────────────
     st.markdown("""
     <div style="margin-bottom:1rem">
-        <a href="http://localhost:8080/index.html"
+        <a href="https://solucionapp.com.ar"
            style="display:inline-flex;align-items:center;gap:0.4rem;
                   color:#5A6E7E;font-size:0.88rem;text-decoration:none;
                   padding:0.4rem 0.8rem;border-radius:8px;border:1px solid #E2E8F0;
