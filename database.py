@@ -61,100 +61,98 @@ def ejecutar(sql: str, params=None, fetch=None):
 # ── CREAR TABLAS ─────────────────────────────────────────────────
 def inicializar_esquema() -> None:
     """Crea todas las tablas si no existen. Seguro de llamar siempre."""
+    tablas = [
+        """CREATE TABLE IF NOT EXISTS clientes (
+            id            SERIAL PRIMARY KEY,
+            nombre        TEXT NOT NULL,
+            apellido      TEXT NOT NULL,
+            dni           TEXT UNIQUE NOT NULL,
+            domicilio     TEXT,
+            email         TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL DEFAULT '',
+            reset_token   TEXT,
+            reset_expiry  TEXT,
+            foto_perfil   TEXT
+        )""",
+        """CREATE TABLE IF NOT EXISTS proveedores (
+            id            SERIAL PRIMARY KEY,
+            razon_social  TEXT NOT NULL,
+            rubros        TEXT NOT NULL,
+            grupo         TEXT NOT NULL DEFAULT 'Sin grupo',
+            cuit          TEXT UNIQUE NOT NULL,
+            direccion     TEXT,
+            encargado     TEXT,
+            contacto      TEXT,
+            email         TEXT UNIQUE,
+            password_hash TEXT NOT NULL DEFAULT '',
+            reset_token   TEXT,
+            reset_expiry  TEXT,
+            latitud       REAL,
+            longitud      REAL,
+            foto_perfil   TEXT
+        )""",
+        """CREATE TABLE IF NOT EXISTS solicitudes (
+            id                  SERIAL PRIMARY KEY,
+            cliente_id          INTEGER NOT NULL REFERENCES clientes(id),
+            proveedor_id        INTEGER NOT NULL REFERENCES proveedores(id),
+            grupo               TEXT,
+            marca               TEXT,
+            modelo              TEXT,
+            anio                TEXT,
+            descripcion         TEXT,
+            email_cliente       TEXT,
+            estado              TEXT NOT NULL DEFAULT 'pendiente',
+            monto_presupuesto   REAL,
+            detalle_presupuesto TEXT,
+            fecha_turno         TEXT,
+            hora_turno          TEXT,
+            foto_antes          TEXT,
+            foto_despues        TEXT,
+            fecha_creacion      TIMESTAMP DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS turno_opciones (
+            id           SERIAL PRIMARY KEY,
+            solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id),
+            fecha        TEXT NOT NULL,
+            hora         TEXT NOT NULL,
+            estado       TEXT NOT NULL DEFAULT 'propuesta'
+        )""",
+        """CREATE TABLE IF NOT EXISTS valoraciones (
+            id           SERIAL PRIMARY KEY,
+            solicitud_id INTEGER NOT NULL UNIQUE REFERENCES solicitudes(id),
+            cliente_id   INTEGER NOT NULL REFERENCES clientes(id),
+            proveedor_id INTEGER NOT NULL REFERENCES proveedores(id),
+            estrellas    INTEGER NOT NULL CHECK(estrellas BETWEEN 1 AND 5),
+            comentario   TEXT,
+            fecha        TIMESTAMP DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS canon_cobros (
+            id           SERIAL PRIMARY KEY,
+            solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id),
+            tipo         TEXT NOT NULL CHECK(tipo IN ('usuario','profesional')),
+            monto        REAL NOT NULL,
+            estado       TEXT NOT NULL DEFAULT 'pendiente',
+            referencia   TEXT,
+            fecha        TIMESTAMP DEFAULT NOW(),
+            UNIQUE(solicitud_id, tipo)
+        )""",
+        """CREATE TABLE IF NOT EXISTS rubros_personalizados (
+            id           SERIAL PRIMARY KEY,
+            grupo        TEXT NOT NULL,
+            nombre       TEXT NOT NULL,
+            agregado_por INTEGER REFERENCES proveedores(id),
+            fecha        TIMESTAMP DEFAULT NOW(),
+            UNIQUE(grupo, nombre)
+        )""",
+    ]
     conn = get_connection()
     cur  = conn.cursor()
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS clientes (
-        id            SERIAL PRIMARY KEY,
-        nombre        TEXT NOT NULL,
-        apellido      TEXT NOT NULL,
-        dni           TEXT UNIQUE NOT NULL,
-        domicilio     TEXT,
-        email         TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL DEFAULT '',
-        reset_token   TEXT,
-        reset_expiry  TEXT,
-        foto_perfil   TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS proveedores (
-        id            SERIAL PRIMARY KEY,
-        razon_social  TEXT NOT NULL,
-        rubros        TEXT NOT NULL,
-        grupo         TEXT NOT NULL DEFAULT 'Sin grupo',
-        cuit          TEXT UNIQUE NOT NULL,
-        direccion     TEXT,
-        encargado     TEXT,
-        contacto      TEXT,
-        email         TEXT UNIQUE,
-        password_hash TEXT NOT NULL DEFAULT '',
-        reset_token   TEXT,
-        reset_expiry  TEXT,
-        latitud       REAL,
-        longitud      REAL,
-        foto_perfil   TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS solicitudes (
-        id                  SERIAL PRIMARY KEY,
-        cliente_id          INTEGER NOT NULL REFERENCES clientes(id),
-        proveedor_id        INTEGER NOT NULL REFERENCES proveedores(id),
-        grupo               TEXT,
-        marca               TEXT,
-        modelo              TEXT,
-        anio                TEXT,
-        descripcion         TEXT,
-        email_cliente       TEXT,
-        estado              TEXT NOT NULL DEFAULT 'pendiente',
-        monto_presupuesto   REAL,
-        detalle_presupuesto TEXT,
-        fecha_turno         TEXT,
-        hora_turno          TEXT,
-        foto_antes          TEXT,
-        foto_despues        TEXT,
-        fecha_creacion      TIMESTAMP DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS turno_opciones (
-        id           SERIAL PRIMARY KEY,
-        solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id),
-        fecha        TEXT NOT NULL,
-        hora         TEXT NOT NULL,
-        estado       TEXT NOT NULL DEFAULT 'propuesta'
-    );
-
-    CREATE TABLE IF NOT EXISTS valoraciones (
-        id           SERIAL PRIMARY KEY,
-        solicitud_id INTEGER NOT NULL UNIQUE REFERENCES solicitudes(id),
-        cliente_id   INTEGER NOT NULL REFERENCES clientes(id),
-        proveedor_id INTEGER NOT NULL REFERENCES proveedores(id),
-        estrellas    INTEGER NOT NULL CHECK(estrellas BETWEEN 1 AND 5),
-        comentario   TEXT,
-        fecha        TIMESTAMP DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS canon_cobros (
-        id           SERIAL PRIMARY KEY,
-        solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id),
-        tipo         TEXT NOT NULL CHECK(tipo IN ('usuario','profesional')),
-        monto        REAL NOT NULL,
-        estado       TEXT NOT NULL DEFAULT 'pendiente',
-        referencia   TEXT,
-        fecha        TIMESTAMP DEFAULT NOW(),
-        UNIQUE(solicitud_id, tipo)
-    );
-
-    CREATE TABLE IF NOT EXISTS rubros_personalizados (
-        id           SERIAL PRIMARY KEY,
-        grupo        TEXT NOT NULL,
-        nombre       TEXT NOT NULL,
-        agregado_por INTEGER REFERENCES proveedores(id),
-        fecha        TIMESTAMP DEFAULT NOW(),
-        UNIQUE(grupo, nombre)
-    );
-    """)
-    conn.commit()
+    for sql in tablas:
+        try:
+            cur.execute(sql)
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
     cur.close()
 
 
