@@ -14,24 +14,18 @@ import os
 @st.cache_resource
 def get_connection():
     """
-    CONEXIÓN ÚNICA — se conecta a Supabase PostgreSQL.
-    Las credenciales vienen de los Secrets de Streamlit Cloud.
+    CONEXIÓN ÚNICA — se conecta a Supabase via Transaction Pooler.
+    Más estable desde Streamlit Cloud que la conexión directa.
     """
+    import os
     def _get_secret(key, fb=""):
         try:    return st.secrets[key]
         except: return os.environ.get(key, fb)
 
-    host     = _get_secret("DB_HOST",     "db.mwhuzbrfvwuqdijpzkdk.supabase.co")
-    port     = _get_secret("DB_PORT",     "5432")
-    database = _get_secret("DB_NAME",     "postgres")
-    user     = _get_secret("DB_USER",     "postgres")
     password = _get_secret("DB_PASSWORD", "")
+    url = f"postgresql://postgres.mwhuzbrfvwuqdjjpzkdk:{password}@aws-1-sa-east-1.pooler.supabase.com:6543/postgres"
 
-    conn = psycopg2.connect(
-        host=host, port=port, database=database,
-        user=user, password=password,
-        sslmode="require"   # Supabase requiere SSL
-    )
+    conn = psycopg2.connect(url, sslmode="require")
     conn.autocommit = False
     return conn
 
