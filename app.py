@@ -1,29 +1,30 @@
 # ═══════════════════════════════════════════════════════════════════
-#  app.py — Punto de entrada de SolucionApp.
-#
-#  CÓMO EJECUTAR:
-#    cd solucionapp
-#    python -m streamlit run app.py
-#
-#  SECRETS (crear .streamlit/secrets.toml):
-#    EMAIL_REMITENTE = "tumail@gmail.com"
-#    EMAIL_PASSWORD  = "xxxx xxxx xxxx xxxx"
+#  app.py — Punto de entrada de SolucionApp
+#  CÓMO EJECUTAR: python -m streamlit run app.py
 # ═══════════════════════════════════════════════════════════════════
 
 import streamlit as st
 from config import APP_NAME, CSS_GLOBAL
 from database import inicializar_esquema
 from auth import inicializar_sesion
-from pantallas.selector     import pantalla_selector
-from pantallas.auth_cliente import auth_cliente, pantalla_reset_cliente
-from pantallas.auth_prov    import auth_proveedor, pantalla_reset_proveedor
+from pantallas.selector      import pantalla_selector
+from pantallas.auth_cliente  import auth_cliente, pantalla_reset_cliente
+from pantallas.auth_prov     import auth_proveedor, pantalla_reset_proveedor
 from pantallas.panel_cliente import panel_cliente
 from pantallas.panel_prov    import panel_proveedor
+from pantallas.panel_admin   import pantalla_admin
 
 st.set_page_config(page_title=APP_NAME, page_icon="🔧", layout="wide")
 st.markdown(CSS_GLOBAL, unsafe_allow_html=True)
+
 inicializar_esquema()
 inicializar_sesion()
+
+# ── ACCESO ADMIN por parámetro URL: ?admin=1 ─────────────────────
+params = st.query_params
+if params.get("admin") == "1":
+    pantalla_admin()
+    st.stop()
 
 step = st.session_state["auth_step"]
 modo = st.session_state["modo"]

@@ -1,33 +1,78 @@
 # ═══════════════════════════════════════════════════════════════════
 #  database.py
-#  FUNCIÓN: Base de datos — conexión y estructura de tablas
+#  FUNCIÓN: Base de datos — conexión a PostgreSQL (Supabase)
+#  Los datos persisten siempre, no se borran al reiniciar la app.
 # ═══════════════════════════════════════════════════════════════════
 
-import sqlite3
 import streamlit as st
+import psycopg2
+import psycopg2.extras
+import os
 
 
-# ── CONEXIÓN ─────────────────────────────────────────────────────
+# ── CONEXIÓN A SUPABASE (PostgreSQL) ────────────────────────────
 @st.cache_resource
-def get_connection() -> sqlite3.Connection:
-    """Retorna la conexión única a la base de datos."""
-    c = sqlite3.connect("solucionapp.db", check_same_thread=False)
-    c.execute("PRAGMA journal_mode=WAL")
-    c.execute("PRAGMA foreign_keys=ON")
-    return c
+def get_connection():
+    """
+    CONEXIÓN ÚNICA — se conecta a Supabase PostgreSQL.
+    Las credenciales vienen de los Secrets de Streamlit Cloud.
+    """
+    def _get_secret(key, fb=""):
+        try:    return st.secrets[key]
+        except: return os.environ.get(key, fb)
+
+    host     = _get_secret("DB_HOST",     "db.mwhuzbrfvwuqdijpzkdk.supabase.co")
+    port     = _get_secret("DB_PORT",     "5432")
+    database = _get_secret("DB_NAME",     "postgres")
+    user     = _get_secret("DB_USER",     "postgres")
+    password = _get_secret("DB_PASSWORD", "")
+
+    conn = psycopg2.connect(
+        host=host, port=port, database=database,
+        user=user, password=password,
+        sslmode="require"   # Supabase requiere SSL
+    )
+    conn.autocommit = False
+    return conn
 
 
-def get_cursor() -> sqlite3.Cursor:
-    return get_connection().cursor()
+def ejecutar(sql: str, params=None, fetch=None):
+    """
+    EJECUTAR QUERY — función central para todas las consultas.
+    fetch: None = solo ejecutar, "one" = un resultado, "all" = todos
+    Reconecta automáticamente si la conexión se cortó.
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(sql, params or ())
+        if fetch == "one":
+            return cur.fetchone()
+        if fetch == "all":
+            return cur.fetchall()
+        conn.commit()
+        return None
+    except psycopg2.OperationalError:
+        # Reconectar si la conexión expiró
+        st.cache_resource.clear()
+        conn = get_connection()
+        cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(sql, params or ())
+        if fetch == "one":  return cur.fetchone()
+        if fetch == "all":  return cur.fetchall()
+        conn.commit()
+        return None
 
 
 # ── CREAR TABLAS ─────────────────────────────────────────────────
 def inicializar_esquema() -> None:
-    """Crea todas las tablas si no existen y ejecuta migraciones."""
+    """Crea todas las tablas si no existen. Seguro de llamar siempre."""
     conn = get_connection()
-    conn.executescript("""
+    cur  = conn.cursor()
+
+    cur.execute("""
     CREATE TABLE IF NOT EXISTS clientes (
-        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        id            SERIAL PRIMARY KEY,
         nombre        TEXT NOT NULL,
         apellido      TEXT NOT NULL,
         dni           TEXT UNIQUE NOT NULL,
@@ -35,11 +80,12 @@ def inicializar_esquema() -> None:
         email         TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL DEFAULT '',
         reset_token   TEXT,
-        reset_expiry  TEXT
+        reset_expiry  TEXT,
+        foto_perfil   TEXT
     );
 
     CREATE TABLE IF NOT EXISTS proveedores (
-        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        id            SERIAL PRIMARY KEY,
         razon_social  TEXT NOT NULL,
         rubros        TEXT NOT NULL,
         grupo         TEXT NOT NULL DEFAULT 'Sin grupo',
@@ -52,11 +98,12 @@ def inicializar_esquema() -> None:
         reset_token   TEXT,
         reset_expiry  TEXT,
         latitud       REAL,
-        longitud      REAL
+        longitud      REAL,
+        foto_perfil   TEXT
     );
 
     CREATE TABLE IF NOT EXISTS solicitudes (
-        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        id                  SERIAL PRIMARY KEY,
         cliente_id          INTEGER NOT NULL REFERENCES clientes(id),
         proveedor_id        INTEGER NOT NULL REFERENCES proveedores(id),
         grupo               TEXT,
@@ -72,11 +119,11 @@ def inicializar_esquema() -> None:
         hora_turno          TEXT,
         foto_antes          TEXT,
         foto_despues        TEXT,
-        fecha_creacion      TEXT DEFAULT (datetime('now','localtime'))
+        fecha_creacion      TIMESTAMP DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS turno_opciones (
-        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        id           SERIAL PRIMARY KEY,
         solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id),
         fecha        TEXT NOT NULL,
         hora         TEXT NOT NULL,
@@ -84,98 +131,61 @@ def inicializar_esquema() -> None:
     );
 
     CREATE TABLE IF NOT EXISTS valoraciones (
-        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        id           SERIAL PRIMARY KEY,
         solicitud_id INTEGER NOT NULL UNIQUE REFERENCES solicitudes(id),
         cliente_id   INTEGER NOT NULL REFERENCES clientes(id),
         proveedor_id INTEGER NOT NULL REFERENCES proveedores(id),
         estrellas    INTEGER NOT NULL CHECK(estrellas BETWEEN 1 AND 5),
         comentario   TEXT,
-        fecha        TEXT DEFAULT (datetime('now','localtime'))
+        fecha        TIMESTAMP DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS canon_cobros (
-        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        id           SERIAL PRIMARY KEY,
         solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id),
         tipo         TEXT NOT NULL CHECK(tipo IN ('usuario','profesional')),
         monto        REAL NOT NULL,
         estado       TEXT NOT NULL DEFAULT 'pendiente',
         referencia   TEXT,
-        fecha        TEXT DEFAULT (datetime('now','localtime')),
+        fecha        TIMESTAMP DEFAULT NOW(),
         UNIQUE(solicitud_id, tipo)
     );
 
     CREATE TABLE IF NOT EXISTS rubros_personalizados (
-        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        id           SERIAL PRIMARY KEY,
         grupo        TEXT NOT NULL,
         nombre       TEXT NOT NULL,
         agregado_por INTEGER REFERENCES proveedores(id),
-        fecha        TEXT DEFAULT (datetime('now','localtime')),
+        fecha        TIMESTAMP DEFAULT NOW(),
         UNIQUE(grupo, nombre)
     );
     """)
     conn.commit()
-    _migraciones(conn)
-
-
-# ── AGREGAR COLUMNA (migración segura) ───────────────────────────
-def _col(conn, tabla, col, tipo="TEXT"):
-    """Agrega una columna si no existe — migración segura."""
-    cols = [r[1] for r in conn.execute(f"PRAGMA table_info({tabla})").fetchall()]
-    if col not in cols:
-        conn.execute(f"ALTER TABLE {tabla} ADD COLUMN {col} {tipo.replace('NOT NULL','').strip()}")
-        conn.commit()
-
-
-# ── MIGRACIONES ──────────────────────────────────────────────────
-def _migraciones(conn):
-    """Actualiza bases de datos antiguas con columnas nuevas."""
-    for col, tipo in [
-        ("rubros","TEXT DEFAULT ''"), ("grupo","TEXT DEFAULT 'Sin grupo'"),
-        ("email","TEXT"), ("contacto","TEXT"), ("reset_token","TEXT"),
-        ("reset_expiry","TEXT"), ("latitud","REAL"), ("longitud","REAL"),
-    ]:
-        _col(conn, "proveedores", col, tipo)
-    for col, tipo in [
-        ("password_hash","TEXT DEFAULT ''"), ("reset_token","TEXT"), ("reset_expiry","TEXT"),
-    ]:
-        _col(conn, "clientes", col, tipo)
-    for col, tipo in [
-        ("foto_antes","TEXT"), ("foto_despues","TEXT"), ("grupo","TEXT"),
-    ]:
-        _col(conn, "solicitudes", col, tipo)
+    cur.close()
 
 
 # ── RUBROS DINÁMICOS ─────────────────────────────────────────────
 def get_rubros(grupo: str) -> list:
-    """
-    OBTENER RUBROS — retorna rubros fijos + personalizados para un grupo.
-    Los rubros personalizados los agregan los especialistas al registrarse.
-    """
+    """OBTENER RUBROS — fijos + personalizados para un grupo."""
     from config import CATEGORIAS
-    conn   = get_connection()
     fijos  = CATEGORIAS.get(grupo, [])
-    custom = [r[0] for r in conn.execute(
-        "SELECT nombre FROM rubros_personalizados WHERE grupo=? ORDER BY nombre",
-        (grupo,)
-    ).fetchall()]
-    # Mantener "Otro" al final, agregar personalizados en el medio
+    custom = ejecutar(
+        "SELECT nombre FROM rubros_personalizados WHERE grupo=%s ORDER BY nombre",
+        (grupo,), fetch="all"
+    ) or []
+    custom_nombres = [r["nombre"] for r in custom]
     otros = [r for r in fijos if r.startswith("Otro")]
     base  = [r for r in fijos if not r.startswith("Otro")]
-    return base + [r for r in custom if r not in fijos] + otros
+    return base + [r for r in custom_nombres if r not in fijos] + otros
 
 
 def agregar_rubro_personalizado(grupo: str, nombre: str, proveedor_id: int) -> bool:
-    """
-    AGREGAR RUBRO — guarda un rubro nuevo en la base de datos.
-    Retorna True si se agregó, False si ya existía.
-    """
-    conn = get_connection()
+    """AGREGAR RUBRO — guarda un rubro nuevo. Retorna True si se agregó."""
     try:
-        conn.execute(
-            "INSERT INTO rubros_personalizados (grupo,nombre,agregado_por) VALUES (?,?,?)",
+        ejecutar(
+            "INSERT INTO rubros_personalizados (grupo,nombre,agregado_por) VALUES (%s,%s,%s) ON CONFLICT DO NOTHING",
             (grupo, nombre.strip().title(), proveedor_id)
         )
-        conn.commit()
         return True
     except Exception:
-        return False  # ya existía (UNIQUE constraint)
+        return False
