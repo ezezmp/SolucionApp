@@ -103,17 +103,18 @@ def _buscar(cliente_id, cliente_nombre):
 
 def _card_proveedor(prov, dist):
     stats = ejecutar(
-        """SELECT COUNT(s.id), AVG(s.monto_presupuesto), COUNT(v.id), AVG(v.estrellas)
+        """SELECT COUNT(s.id) as total, AVG(s.monto_presupuesto) as promedio,
+                  COUNT(v.id) as nval, AVG(v.estrellas) as estrellas
            FROM solicitudes s LEFT JOIN valoraciones v ON v.solicitud_id=s.id
            WHERE s.proveedor_id=%s AND s.estado IN ('aceptada','turno_propuesto','turno_confirmado','trabajo_completado','valorado')
            AND s.monto_presupuesto IS NOT NULL""",
         (prov["id"],), fetch="one"
     )
     partes = []
-    if dist is not None:                               partes.append(f"📍 {dist:.1f} km")
-    if stats and stats[1]:                             partes.append(f"💰 Promedio: ${stats[1]:,.0f}")
-    if stats and stats[3] and stats[2] > 0:           partes.append(f"{'⭐'*round(stats[3])} {stats[3]:.1f} ({stats[2]} opiniones)")
-    elif stats and stats[0]:                           partes.append(f"📋 {stats[0]} trabajo{'s' if stats[0]>1 else ''}")
+    if dist is not None:                                          partes.append(f"📍 {dist:.1f} km")
+    if stats and stats["promedio"]:                               partes.append(f"💰 Promedio: ${stats['promedio']:,.0f}")
+    if stats and stats["estrellas"] and stats["nval"] > 0:        partes.append(f"{'⭐'*round(stats['estrellas'])} {stats['estrellas']:.1f} ({stats['nval']} opiniones)")
+    elif stats and stats["total"]:                                partes.append(f"📋 {stats['total']} trabajo{'s' if stats['total']>1 else ''}")
     stats_html = (f'<div style="margin-top:0.5rem;font-size:0.85rem;color:#374151">'+" &nbsp;|&nbsp; ".join(partes)+"</div>") if partes else ""
     rubros_html = f'<div style="margin-top:0.3rem;font-size:0.82rem;color:#3B82F6">🛠 {prov["rubros"]}</div>'
     render_sol_card(titulo=f"🔧 {prov['razon_social']}",
