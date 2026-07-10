@@ -172,7 +172,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 # Logo pequeño: aparece en la barra lateral cuando el usuario está logueado
 LOGO_BIG = f"""
 <div style="margin-bottom:2rem">
-<a href="https://solucionapp.com.ar" target="_blank" style="text-decoration:none;display:block">
+<a href="https://solucionapp.com.ar" target="_self" style="text-decoration:none;display:block">
 <svg width="100%" viewBox="0 0 780 130" xmlns="http://www.w3.org/2000/svg">
   <style>
     @keyframes fp1{{0%,100%{{r:7}}50%{{r:10}}}}
@@ -203,7 +203,7 @@ LOGO_BIG = f"""
 
 LOGO_SMALL = f"""
 <div style="margin-bottom:1.2rem">
-<a href="https://solucionapp.com.ar" target="_blank" style="text-decoration:none;display:block">
+<a href="https://solucionapp.com.ar" target="_self" style="text-decoration:none;display:block">
 <svg width="200" viewBox="0 0 600 80" xmlns="http://www.w3.org/2000/svg">
   <style>
     @keyframes sfp{{0%,100%{{r:6}}50%{{r:8.5}}}}
