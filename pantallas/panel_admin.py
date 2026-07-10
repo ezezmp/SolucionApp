@@ -105,7 +105,12 @@ def _seccion_clientes():
             st.write(f"**DNI:** {r['dni']}")
             st.write(f"**Registrado:** {r['fecha_creacion']}")
             if st.button("🗑️ Eliminar usuario", key=f"del_cli_{r['id']}"):
-                ejecutar("DELETE FROM clientes WHERE id=%s", (r["id"],))
+                cid = r["id"]
+                ejecutar("DELETE FROM valoraciones WHERE cliente_id=%s", (cid,))
+                ejecutar("DELETE FROM canon_cobros WHERE solicitud_id IN (SELECT id FROM solicitudes WHERE cliente_id=%s)", (cid,))
+                ejecutar("DELETE FROM turno_opciones WHERE solicitud_id IN (SELECT id FROM solicitudes WHERE cliente_id=%s)", (cid,))
+                ejecutar("DELETE FROM solicitudes WHERE cliente_id=%s", (cid,))
+                ejecutar("DELETE FROM clientes WHERE id=%s", (cid,))
                 st.success("Usuario eliminado.")
                 st.rerun()
 
@@ -125,7 +130,13 @@ def _seccion_proveedores():
             st.write(f"**Rubros:** {r['rubros']}")
             st.write(f"**Grupo:** {r['grupo']}")
             if st.button("🗑️ Eliminar especialista", key=f"del_prov_{r['id']}"):
-                ejecutar("DELETE FROM proveedores WHERE id=%s", (r["id"],))
+                pid = r["id"]
+                ejecutar("DELETE FROM valoraciones WHERE proveedor_id=%s", (pid,))
+                ejecutar("DELETE FROM canon_cobros WHERE solicitud_id IN (SELECT id FROM solicitudes WHERE proveedor_id=%s)", (pid,))
+                ejecutar("DELETE FROM turno_opciones WHERE solicitud_id IN (SELECT id FROM solicitudes WHERE proveedor_id=%s)", (pid,))
+                ejecutar("DELETE FROM solicitudes WHERE proveedor_id=%s", (pid,))
+                ejecutar("DELETE FROM rubros_personalizados WHERE agregado_por=%s", (pid,))
+                ejecutar("DELETE FROM proveedores WHERE id=%s", (pid,))
                 st.success("Especialista eliminado.")
                 st.rerun()
 
