@@ -55,20 +55,18 @@ def render_presup_box(monto, detalle):
 
 def formulario_cambiar_pw(tabla, id_usuario, key_prefix):
     from auth import verificar_pw, hash_pw
-    from database import get_connection
+    from database import ejecutar
     pw_a  = st.text_input("Contraseña actual",                    type="password", key=f"{key_prefix}_a")
     pw_n  = st.text_input("Nueva contraseña (mín. 6 caracteres)", type="password", key=f"{key_prefix}_n")
     pw_n2 = st.text_input("Repetir nueva contraseña",             type="password", key=f"{key_prefix}_n2")
     if st.button("ACTUALIZAR CONTRASEÑA", type="primary", use_container_width=True, key=f"{key_prefix}_btn"):
-        conn = get_connection()
-        row  = conn.execute(f"SELECT password_hash FROM {tabla} WHERE id=?", (id_usuario,)).fetchone()
-        if not row or not verificar_pw(pw_a, row[0]):
+        row = ejecutar(f"SELECT password_hash FROM {tabla} WHERE id=%s", (id_usuario,), fetch="one")
+        if not row or not verificar_pw(pw_a, row["password_hash"]):
             st.error("La contraseña actual es incorrecta.")
         elif len(pw_n) < 6:
             st.error("Mínimo 6 caracteres.")
         elif pw_n != pw_n2:
             st.error("Las contraseñas no coinciden.")
         else:
-            conn.execute(f"UPDATE {tabla} SET password_hash=? WHERE id=?", (hash_pw(pw_n), id_usuario))
-            conn.commit()
+            ejecutar(f"UPDATE {tabla} SET password_hash=%s WHERE id=%s", (hash_pw(pw_n), id_usuario))
             st.success("✅ Contraseña actualizada.")
