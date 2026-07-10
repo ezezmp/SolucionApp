@@ -59,47 +59,17 @@ def _geocodificar(direccion):
     return None, None
 
 def _registro_especialista():
-    from database import get_rubros, agregar_rubro_personalizado
     st.write("")
     grupo_r = st.selectbox("Grupo de servicio *", list(CATEGORIAS.keys()), key="prov_reg_grupo")
 
-    # ── MÚLTIPLES RUBROS (fijos + personalizados) ─────────────────
-    rubros_disponibles = get_rubros(grupo_r)
+    # ── MÚLTIPLES RUBROS ─────────────────────────────────────────
     st.markdown("**Rubros / Actividades *** *(podés elegir más de uno)*")
     rubros_sel = st.multiselect(
         "Seleccioná tus especialidades",
-        rubros_disponibles,
+        CATEGORIAS[grupo_r],
         key="prov_reg_rubros",
         placeholder="Elegí uno o más rubros...",
     )
-
-    # ── AGREGAR RUBRO PERSONALIZADO ───────────────────────────────
-    with st.expander("➕ Mi rubro no está en la lista — agregarlo"):
-        st.caption("El rubro que agregues quedará disponible para todos los especialistas de la plataforma.")
-        nuevo_rubro = st.text_input(
-            "Nombre del rubro nuevo",
-            key="prov_nuevo_rubro",
-            placeholder="Ej: Herrería, Soldadura, Pintura industrial...",
-            max_chars=60,
-        )
-        if st.button("AGREGAR RUBRO", key="btn_nuevo_rubro"):
-            if not nuevo_rubro.strip():
-                st.error("Escribí el nombre del rubro.")
-            elif nuevo_rubro.strip().title() in rubros_disponibles:
-                st.warning("Ese rubro ya existe en la lista.")
-            else:
-                # Lo guardamos temporalmente en session_state hasta que complete el registro
-                if "rubros_nuevos_temp" not in st.session_state:
-                    st.session_state["rubros_nuevos_temp"] = []
-                nombre_limpio = nuevo_rubro.strip().title()
-                if nombre_limpio not in st.session_state["rubros_nuevos_temp"]:
-                    st.session_state["rubros_nuevos_temp"].append(nombre_limpio)
-                st.success(f"✅ '{nombre_limpio}' agregado. Seleccionalo arriba en el multiselect.")
-                st.rerun()
-
-    # Mostrar rubros nuevos pendientes de guardar
-    if st.session_state.get("rubros_nuevos_temp"):
-        st.info(f"Rubros nuevos por guardar: {', '.join(st.session_state['rubros_nuevos_temp'])}")
 
     razon_r     = st.text_input("Razón social *",       key="prov_reg_razon",  placeholder="Mi Empresa S.R.L.")
     cuit_r      = st.text_input("CUIT (sin guiones) *", key="prov_reg_cuit",   placeholder="20123456789")
@@ -116,27 +86,30 @@ def _registro_especialista():
 **Términos y Condiciones de {APP_NAME} — Especialistas**
 
 **1. Costo de servicio**
-Al enviar un presupuesto a través de {APP_NAME}, se agregará automáticamente un ítem
-denominado **"Costo de servicio {APP_NAME}"** por un valor fijo establecido por la
-plataforma. El especialista deberá cobrar dicho monto al usuario junto con el presupuesto
-y **rendirlo a {APP_NAME} al finalizar cada trabajo**.
+{APP_NAME} podrá incorporar, a su criterio, un ítem denominado **"Costo de servicio
+{APP_NAME}"** en los presupuestos generados a través de la plataforma. En caso de
+figurar dicho ítem, el especialista deberá cobrarlo al usuario como parte del presupuesto
+total y **abonarlo a {APP_NAME}** en los plazos y formas que la plataforma establezca.
+La incorporación de este ítem será comunicada con anticipación y no se aplicará
+de forma automática en todos los casos.
 
 **2. Obligaciones del especialista**
-El especialista se compromete a: brindar servicios de calidad, cumplir con los turnos
-acordados, subir foto del trabajo terminado al finalizar, y rendir el costo de servicio
-en tiempo y forma.
+El especialista se compromete a brindar servicios de calidad, cumplir con los turnos
+acordados, documentar el trabajo con fotografías del resultado final y, en caso de
+corresponder, rendir el costo de servicio en tiempo y forma.
 
 **3. Suspensión de cuenta**
 {APP_NAME} podrá suspender cuentas de especialistas que acumulen calificaciones
-negativas, no rindan el costo de servicio o incumplan estos términos.
+negativas, incumplan con la rendición del costo de servicio cuando corresponda,
+o violen estos términos y condiciones.
 
 **4. Modificaciones**
-{APP_NAME} se reserva el derecho de modificar el monto del costo de servicio con
-previo aviso de 15 días a los especialistas registrados.
+{APP_NAME} se reserva el derecho de modificar los presentes términos con previo
+aviso de 15 días a los especialistas registrados.
 
 **5. Privacidad**
 Los datos de la empresa serán utilizados únicamente para el funcionamiento de la
-plataforma.
+plataforma y no serán compartidos con terceros sin consentimiento previo.
         """)
     acepta_tyc = st.checkbox("Leí y acepto los Términos y Condiciones *", key="prov_reg_tyc")
     st.write("")
@@ -155,9 +128,10 @@ plataforma.
         if err:
             st.error("Corregí: " + ", ".join(err))
         else:
-            lat, lon    = _geocodificar(direccion_r)
-            rubros_str  = ", ".join(rubros_sel)
-            conn        = get_connection()
+            lat, lon = _geocodificar(direccion_r)
+            # Guardamos los rubros como string separado por comas
+            rubros_str = ", ".join(rubros_sel)
+            conn = get_connection()
             try:
                 conn.execute(
                     """INSERT INTO proveedores
@@ -168,19 +142,7 @@ plataforma.
                      email_r.strip().lower(), hash_pw(pw_r), lat, lon)
                 )
                 conn.commit()
-
-                # GUARDAR RUBROS PERSONALIZADOS en la base de datos
-                prov_nuevo = conn.execute(
-                    "SELECT id FROM proveedores WHERE email=?", (email_r.strip().lower(),)
-                ).fetchone()
-                if prov_nuevo and st.session_state.get("rubros_nuevos_temp"):
-                    from database import agregar_rubro_personalizado
-                    for rubro_nuevo in st.session_state["rubros_nuevos_temp"]:
-                        agregar_rubro_personalizado(grupo_r, rubro_nuevo, prov_nuevo[0])
-                    st.session_state["rubros_nuevos_temp"] = []
-
-                enviar_email(email_r.strip(), f"¡Bienvenido a {APP_NAME}!", encargado_r,
-                             email_bienvenida_proveedor(razon_r))
+                enviar_email(email_r.strip(), f"¡Bienvenido a {APP_NAME}!", encargado_r, email_bienvenida_proveedor(razon_r))
                 st.success("✅ ¡Empresa registrada! Revisá tu email e iniciá sesión.")
                 st.session_state["mostrar_reg_especialista"] = False
                 st.rerun()

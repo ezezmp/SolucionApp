@@ -57,22 +57,25 @@ def _registro_usuario():
 **Términos y Condiciones de {APP_NAME}**
 
 **1. Sobre los presupuestos**
-Los presupuestos enviados por los especialistas incluyen un ítem denominado
-**"Costo de servicio {APP_NAME}"**. Este monto corresponde al canon por uso de la
-plataforma. El usuario abona dicho ítem al especialista junto con el resto del trabajo,
-y el especialista lo rinde a {APP_NAME} al finalizar.
+Los presupuestos enviados por los especialistas pueden incluir, a criterio de la plataforma,
+un ítem denominado **"Costo de servicio {APP_NAME}"**. Dicho ítem, en caso de figurar,
+representa el canon por uso de la plataforma y será cobrado por el especialista al usuario
+al momento de abonar el trabajo. El especialista será responsable de rendir dicho importe
+a {APP_NAME} conforme a los términos acordados.
 
 **2. Modificación de presupuestos**
-{APP_NAME} se reserva el derecho de agregar el ítem "Costo de servicio" a cualquier
-presupuesto cuando corresponda según las políticas de la plataforma.
+{APP_NAME} se reserva el derecho de incorporar el ítem "Costo de servicio" en los
+presupuestos cuando lo considere pertinente, de acuerdo con las políticas vigentes
+de la plataforma. El usuario será informado de cualquier cargo adicional antes de
+confirmar la aceptación del presupuesto.
 
 **3. Responsabilidad**
-{APP_NAME} actúa como intermediario. La calidad del trabajo es responsabilidad
-exclusiva del especialista contratado.
+{APP_NAME} actúa como intermediario entre usuarios y especialistas. La calidad del
+trabajo es responsabilidad exclusiva del especialista contratado.
 
 **4. Privacidad**
-Los datos personales serán utilizados únicamente para el funcionamiento de la
-plataforma y no serán compartidos con terceros sin consentimiento previo.
+Los datos personales ingresados serán utilizados únicamente para el funcionamiento
+de la plataforma y no serán compartidos con terceros sin consentimiento previo.
         """)
     acepta_tyc = st.checkbox("Leí y acepto los Términos y Condiciones *", key="cli_reg_tyc")
     st.write("")
