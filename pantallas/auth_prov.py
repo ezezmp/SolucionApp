@@ -83,33 +83,78 @@ def _registro_especialista():
 
     with st.expander("📄 Términos y Condiciones para Especialistas — leer antes de registrarse"):
         st.markdown(f"""
-**Términos y Condiciones de {APP_NAME} — Especialistas**
+**TÉRMINOS Y CONDICIONES PARA ESPECIALISTAS — {APP_NAME.upper()}**
+*Versión vigente — Última actualización: Julio 2026*
 
-**1. Costo de servicio**
-{APP_NAME} podrá incorporar, a su criterio, un ítem denominado **"Costo de servicio
-{APP_NAME}"** en los presupuestos generados a través de la plataforma. En caso de
-figurar dicho ítem, el especialista deberá cobrarlo al usuario como parte del presupuesto
-total y **abonarlo a {APP_NAME}** en los plazos y formas que la plataforma establezca.
-La incorporación de este ítem será comunicada con anticipación y no se aplicará
-de forma automática en todos los casos.
+Al registrarse en {APP_NAME} como especialista, declarás haber leído, comprendido
+y aceptado en su totalidad los presentes Términos y Condiciones.
 
-**2. Obligaciones del especialista**
-El especialista se compromete a brindar servicios de calidad, cumplir con los turnos
-acordados, documentar el trabajo con fotografías del resultado final y, en caso de
-corresponder, rendir el costo de servicio en tiempo y forma.
+---
 
-**3. Suspensión de cuenta**
-{APP_NAME} podrá suspender cuentas de especialistas que acumulen calificaciones
-negativas, incumplan con la rendición del costo de servicio cuando corresponda,
-o violen estos términos y condiciones.
+**1. Objeto de la plataforma**
+{APP_NAME} es una plataforma digital de intermediación que facilita la conexión entre
+especialistas que ofrecen servicios del hogar o automotor y usuarios que los requieren.
+{APP_NAME} no es parte de la relación contractual entre el especialista y el usuario,
+actuando únicamente como intermediario tecnológico.
 
-**4. Modificaciones**
-{APP_NAME} se reserva el derecho de modificar los presentes términos con previo
-aviso de 15 días a los especialistas registrados.
+**2. Presupuestos y costo de servicio**
+Los presupuestos son elaborados íntegramente por el especialista y reflejan su propio
+criterio profesional. {APP_NAME} no modifica el contenido de los mismos.
+No obstante, al momento de cerrar un presupuesto aceptado, la plataforma podrá
+incorporar un cargo adicional denominado **"Costo de servicio {APP_NAME}"**, el cual
+representará el canon por uso de la plataforma. Dicho cargo, en caso de aplicarse,
+será visible para el especialista en su panel bajo la opción **"Abonar costo de servicio"**,
+con el correspondiente enlace de pago.
 
-**5. Privacidad**
-Los datos de la empresa serán utilizados únicamente para el funcionamiento de la
-plataforma y no serán compartidos con terceros sin consentimiento previo.
+> 📌 **Aclaración vigente:** A la fecha de estos términos, {APP_NAME} **no aplica ni
+> cobra** el ítem "Costo de servicio" a ningún especialista. La plataforma se encuentra
+> en etapa de crecimiento y este cargo podrá implementarse en el futuro únicamente cuando
+> sea necesario para costear el mantenimiento y desarrollo de la plataforma. Tanto
+> especialistas como usuarios serán notificados con un mínimo de **30 días de anticipación**
+> antes de cualquier implementación de este cargo.
+
+**3. Obligaciones del especialista**
+El especialista se compromete a:
+- Brindar servicios de calidad y con la idoneidad profesional requerida.
+- Cumplir con los turnos acordados a través de la plataforma.
+- Documentar el trabajo realizado con fotografías del resultado final.
+- Brindar información veraz al momento del registro y en cada presupuesto.
+- Rendir el costo de servicio a {APP_NAME} cuando corresponda, en los plazos establecidos.
+
+**4. Calificaciones**
+Al finalizar cada trabajo, el usuario podrá calificar al especialista con una puntuación
+del 1 al 5 y un comentario opcional. Las calificaciones son públicas y visibles para
+otros usuarios de la plataforma. El especialista no podrá solicitar la eliminación de
+calificaciones verídicas, pero podrá reportar aquellas que considere falsas u ofensivas
+para su revisión por parte de {APP_NAME}.
+
+**5. Suspensión y baja de cuenta**
+{APP_NAME} podrá suspender o dar de baja cuentas de especialistas que:
+- Acumulen calificaciones negativas reiteradas.
+- Incumplan con la rendición del costo de servicio cuando corresponda.
+- Brinden información falsa en el registro o en los presupuestos.
+- Violen cualquiera de los presentes términos y condiciones.
+
+**6. Responsabilidad**
+La calidad, idoneidad y resultado de los trabajos realizados son responsabilidad exclusiva
+del especialista. {APP_NAME} no asume responsabilidad alguna por daños, pérdidas o
+perjuicios derivados de la prestación del servicio.
+
+**7. Privacidad y protección de datos**
+Los datos de la empresa y del encargado ingresados serán tratados de forma confidencial
+y utilizados exclusivamente para el funcionamiento de la plataforma. No serán cedidos
+ni comercializados con terceros sin consentimiento expreso, en cumplimiento de la
+Ley N° 25.326 de Protección de Datos Personales de la República Argentina.
+
+**8. Modificaciones**
+{APP_NAME} se reserva el derecho de modificar los presentes Términos y Condiciones
+notificando a los especialistas registrados con un mínimo de 15 días de anticipación.
+La continuación del uso de la plataforma luego de la notificación implicará la
+aceptación de los nuevos términos.
+
+**9. Jurisdicción**
+Ante cualquier controversia derivada del uso de la plataforma, las partes se someten
+a la jurisdicción de los Tribunales Ordinarios de la Ciudad de Córdoba, República Argentina.
         """)
     acepta_tyc = st.checkbox("Leí y acepto los Términos y Condiciones *", key="prov_reg_tyc")
     st.write("")

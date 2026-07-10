@@ -17,11 +17,44 @@ def panel_cliente():
     cliente_id     = st.session_state["cliente_id"]
     cliente_nombre = st.session_state["cliente_nombre"]
     sidebar_brand(cliente_nombre, "Usuario")
-    opcion = st.sidebar.selectbox("Menú", ["🔎 Buscar especialista","📬 Mis solicitudes","🔑 Cambiar contraseña"],
-                                  label_visibility="collapsed")
+
+    # ── NOTIFICACIÓN AUTOMÁTICA DE CALIFICACIONES PENDIENTES ─────
+    from database import ejecutar
+    pendientes_val = ejecutar(
+        """SELECT s.id, p.razon_social, s.descripcion, s.fecha_turno
+           FROM solicitudes s
+           JOIN proveedores p ON p.id = s.proveedor_id
+           LEFT JOIN valoraciones v ON v.solicitud_id = s.id
+           WHERE s.cliente_id = %s
+             AND s.estado = 'trabajo_completado'
+             AND v.id IS NULL""",
+        (cliente_id,), fetch="all"
+    ) or []
+
+    if pendientes_val:
+        for pv in pendientes_val:
+            st.warning(
+                f"⭐ **Tenés una calificación pendiente** — "
+                f"{pv['razon_social']}: {(pv['descripcion'] or '')[:50]}... "
+                f"— [**Calificar ahora →**](#)",
+                icon="⭐"
+            )
+            if st.button(f"CALIFICAR A {pv['razon_social'].upper()}",
+                         key=f"notif_val_{pv['id']}", type="primary"):
+                st.session_state["ir_a_solicitud"] = pv["id"]
+                st.session_state["menu_forzado"]   = "📬 Mis solicitudes"
+                st.rerun()
+
+    # ── Menú ─────────────────────────────────────────────────────
+    default_menu = st.session_state.pop("menu_forzado", "🔎 Buscar especialista")
+    opciones     = ["🔎 Buscar especialista", "📬 Mis solicitudes", "🔑 Cambiar contraseña"]
+    idx          = opciones.index(default_menu) if default_menu in opciones else 0
+    opcion = st.sidebar.selectbox("Menú", opciones,
+                                  index=idx, label_visibility="collapsed")
     st.sidebar.markdown("<hr style='margin:1rem 0;border-color:#E2E8F0'>", unsafe_allow_html=True)
     if st.sidebar.button("🔒 Cerrar sesión", use_container_width=True):
         cerrar_sesion()
+
     if   opcion == "🔎 Buscar especialista": _buscar(cliente_id, cliente_nombre)
     elif opcion == "📬 Mis solicitudes":     _mis_solicitudes(cliente_id, cliente_nombre)
     elif opcion == "🔑 Cambiar contraseña":
@@ -56,8 +89,7 @@ def _buscar(cliente_id, cliente_nombre):
         grupo_activo = st.session_state["grupo_buscado"]
         btn_volver("Cambiar categoría", key_suffix="back_cat", cat_buscada="", grupo_buscado="", resultados_busq=[])
         st.markdown(f"**{grupo_activo}** — elegí el rubro")
-        from database import get_rubros
-        busqueda = st.selectbox("Rubro", get_rubros(grupo_activo), key="sel_rubro_activo")
+        busqueda = st.selectbox("Rubro", CATEGORIAS[grupo_activo], key="sel_rubro_activo")
         with st.expander("📍 Ordenar por cercanía (opcional)"):
             mi_dir = st.text_input("Tu dirección", key="mi_dir", placeholder="Av. Colón 1234, Córdoba")
         if st.button("BUSCAR ESPECIALISTAS", key="btn_buscar", type="primary"):

@@ -54,28 +54,80 @@ def _registro_usuario():
 
     with st.expander("📄 Términos y Condiciones — leer antes de registrarse"):
         st.markdown(f"""
-**Términos y Condiciones de {APP_NAME}**
+**TÉRMINOS Y CONDICIONES DE USO — {APP_NAME.upper()}**
+*Versión vigente — Última actualización: Julio 2026*
 
-**1. Sobre los presupuestos**
-Los presupuestos enviados por los especialistas pueden incluir, a criterio de la plataforma,
-un ítem denominado **"Costo de servicio {APP_NAME}"**. Dicho ítem, en caso de figurar,
-representa el canon por uso de la plataforma y será cobrado por el especialista al usuario
-al momento de abonar el trabajo. El especialista será responsable de rendir dicho importe
-a {APP_NAME} conforme a los términos acordados.
+Al registrarse en {APP_NAME}, el usuario declara haber leído, comprendido y aceptado
+en su totalidad los presentes Términos y Condiciones.
 
-**2. Modificación de presupuestos**
-{APP_NAME} se reserva el derecho de incorporar el ítem "Costo de servicio" en los
-presupuestos cuando lo considere pertinente, de acuerdo con las políticas vigentes
-de la plataforma. El usuario será informado de cualquier cargo adicional antes de
-confirmar la aceptación del presupuesto.
+---
 
-**3. Responsabilidad**
-{APP_NAME} actúa como intermediario entre usuarios y especialistas. La calidad del
-trabajo es responsabilidad exclusiva del especialista contratado.
+**1. Objeto de la plataforma**
+{APP_NAME} es una plataforma digital de intermediación que facilita la conexión entre
+usuarios que requieren servicios del hogar o automotor y especialistas registrados que
+ofrecen dichos servicios. {APP_NAME} no es parte de la relación contractual entre el
+usuario y el especialista, actuando únicamente como intermediario tecnológico.
 
-**4. Privacidad**
-Los datos personales ingresados serán utilizados únicamente para el funcionamiento
-de la plataforma y no serán compartidos con terceros sin consentimiento previo.
+**2. Presupuestos y costo de servicio**
+Los presupuestos son elaborados íntegramente por los especialistas y reflejan su propio
+criterio profesional. {APP_NAME} no interviene ni modifica el contenido de los mismos.
+No obstante, la plataforma podrá agregar de forma automática un ítem adicional denominado
+**"Costo de servicio {APP_NAME}"**, el cual representa el canon por uso de la plataforma.
+Dicho ítem, en caso de incorporarse, será visible para el usuario previo a la aceptación
+del presupuesto, y será responsabilidad del especialista su rendición a {APP_NAME}
+conforme a los términos vigentes.
+
+> 📌 **Aclaración vigente:** A la fecha de estos términos, {APP_NAME} **no aplica ni
+> cobra** el ítem "Costo de servicio" en ningún presupuesto. La plataforma se encuentra
+> en etapa de crecimiento y este cargo podrá implementarse en el futuro únicamente cuando
+> sea necesario para costear el mantenimiento y desarrollo de la plataforma. Tanto usuarios
+> como especialistas serán notificados con un mínimo de **30 días de anticipación** antes
+> de cualquier implementación de este cargo.
+
+**3. Aceptación de presupuestos**
+La aceptación de un presupuesto por parte del usuario implica su conformidad con el
+monto total detallado, incluyendo el ítem de costo de servicio en caso de figurar.
+Una vez aceptado el presupuesto, el usuario no podrá solicitar modificaciones sobre
+el mismo salvo acuerdo expreso con el especialista.
+
+**4. Turnos y prestación del servicio**
+La coordinación de turnos se realiza entre el usuario y el especialista a través de la
+plataforma. {APP_NAME} no garantiza la disponibilidad horaria de los especialistas ni
+se responsabiliza por demoras o cancelaciones que pudieran surgir.
+
+**5. Calificaciones y reseñas**
+Al finalizar un trabajo, el usuario podrá calificar al especialista con una puntuación
+del 1 al 5 y dejar un comentario opcional. Las calificaciones deberán ser verídicas
+y basadas en la experiencia real del servicio recibido. {APP_NAME} se reserva el
+derecho de eliminar calificaciones que contengan información falsa, ofensiva o
+que violen estas condiciones.
+
+**6. Responsabilidad**
+{APP_NAME} actúa exclusivamente como intermediario tecnológico. La calidad,
+idoneidad y resultado de los trabajos realizados son responsabilidad exclusiva
+del especialista contratado. {APP_NAME} no asume responsabilidad alguna por
+daños, pérdidas o perjuicios derivados de la prestación del servicio.
+
+**7. Conducta del usuario**
+El usuario se compromete a hacer un uso responsable de la plataforma, a brindar
+información veraz al momento del registro y al realizar solicitudes, y a no utilizar
+{APP_NAME} para fines distintos a los establecidos en estos términos.
+
+**8. Privacidad y protección de datos**
+Los datos personales ingresados serán tratados de forma confidencial y utilizados
+exclusivamente para el funcionamiento de la plataforma. No serán cedidos ni
+comercializados con terceros sin el consentimiento expreso del titular, en cumplimiento
+de la Ley N° 25.326 de Protección de Datos Personales de la República Argentina.
+
+**9. Modificaciones**
+{APP_NAME} se reserva el derecho de modificar los presentes Términos y Condiciones
+en cualquier momento, notificando a los usuarios registrados con un mínimo de 15 días
+de anticipación. La continuación del uso de la plataforma luego de la notificación
+implicará la aceptación de los nuevos términos.
+
+**10. Jurisdicción**
+Ante cualquier controversia derivada del uso de la plataforma, las partes se someten
+a la jurisdicción de los Tribunales Ordinarios de la Ciudad de Córdoba, República Argentina.
         """)
     acepta_tyc = st.checkbox("Leí y acepto los Términos y Condiciones *", key="cli_reg_tyc")
     st.write("")
