@@ -95,7 +95,10 @@ def _registro_especialista():
     with c1: encargado_r = st.text_input("Encargado *", key="prov_reg_enc", placeholder="Nombre y apellido")
     with c2: contacto_r  = st.text_input("Teléfono",   key="prov_reg_tel", placeholder="351 000 0000")
     email_r     = st.text_input("Email de contacto *", key="prov_reg_email", placeholder="empresa@mail.com")
-    direccion_r = st.text_input("Dirección *",         key="prov_reg_dir",   placeholder="Calle y número, Ciudad")
+    direccion_r = st.text_input("Dirección *",         key="prov_reg_dir",   placeholder="Calle y número")
+    c1, c2 = st.columns(2)
+    with c1: localidad_r  = st.text_input("Localidad",  key="prov_reg_loc",  placeholder="Córdoba")
+    with c2: provincia_r  = st.text_input("Provincia",  key="prov_reg_prov", placeholder="Córdoba")
     pw_r        = st.text_input("Contraseña * (mín. 6 caracteres)", type="password", key="prov_reg_pw")
     pw_r2       = st.text_input("Repetir contraseña *",             type="password", key="prov_reg_pw2")
 
@@ -169,10 +172,11 @@ son estrictamente privadas. {APP_NAME} no interviene en conflictos entre las par
             try:
                 ejecutar(
                     """INSERT INTO proveedores
-                       (razon_social,rubros,grupo,cuit,direccion,encargado,contacto,email,password_hash,latitud,longitud)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                       (razon_social,rubros,grupo,cuit,direccion,localidad,provincia,encargado,contacto,email,password_hash,latitud,longitud)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (sanitizar(razon_r,100), rubros_str, grupo_r, limpiar_cuit(cuit_r),
-                     sanitizar(direccion_r,150), sanitizar(encargado_r,80), sanitizar(contacto_r,30),
+                     sanitizar(direccion_r,150), sanitizar(localidad_r,80), sanitizar(provincia_r,80),
+                     sanitizar(encargado_r,80), sanitizar(contacto_r,30),
                      email_r.strip().lower(), hash_pw(pw_r), lat, lon)
                 )
                 prov_nuevo = ejecutar("SELECT id FROM proveedores WHERE email=%s",

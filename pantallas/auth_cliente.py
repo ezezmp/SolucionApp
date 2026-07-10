@@ -52,6 +52,9 @@ def _registro_usuario():
     dni_r       = st.text_input("DNI (sin puntos) *",  key="cli_reg_dni",   placeholder="12345678")
     email_r     = st.text_input("Email *",             key="cli_reg_email", placeholder="ejemplo@mail.com")
     domicilio_r = st.text_input("Domicilio",           key="cli_reg_dom",   placeholder="Av. Siempre Viva 742")
+    c1, c2 = st.columns(2)
+    with c1: localidad_r  = st.text_input("Localidad",  key="cli_reg_loc",  placeholder="Córdoba")
+    with c2: provincia_r  = st.text_input("Provincia",  key="cli_reg_prov", placeholder="Córdoba")
     pw_r        = st.text_input("Contraseña * (mín. 6 caracteres)", type="password", key="cli_reg_pw")
     pw_r2       = st.text_input("Repetir contraseña *",             type="password", key="cli_reg_pw2")
 
@@ -145,9 +148,10 @@ entre las partes, los cuales deberán resolverse directamente entre ellas.
         else:
             try:
                 ejecutar(
-                    "INSERT INTO clientes (nombre,apellido,dni,domicilio,email,password_hash) VALUES (%s,%s,%s,%s,%s,%s)",
+                    "INSERT INTO clientes (nombre,apellido,dni,domicilio,localidad,provincia,email,password_hash) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
                     (sanitizar(nombre_r,50), sanitizar(apellido_r,50), limpiar_dni(dni_r),
-                     sanitizar(domicilio_r,150), email_r.strip().lower(), hash_pw(pw_r))
+                     sanitizar(domicilio_r,150), sanitizar(localidad_r,80), sanitizar(provincia_r,80),
+                     email_r.strip().lower(), hash_pw(pw_r))
                 )
                 enviar_email(email_r.strip(), f"¡Bienvenido a {APP_NAME}!", nombre_r,
                              email_bienvenida_cliente(nombre_r))
