@@ -50,9 +50,7 @@ def enviar_email(dest, asunto, nombre, cuerpo_html):
         msg["Subject"] = asunto
         msg.attach(MIMEText(f"Hola {nombre},\n\n{cuerpo_html}", "plain", "utf-8"))
         msg.attach(MIMEText(_html(nombre, cuerpo_html), "html", "utf-8"))
-        with smtplib.SMTP("smtp.office365.com", 587) as s:
-            s.ehlo()
-            s.starttls()
+        with smtplib.SMTP_SSL("wo51.wiroos.host", 465) as s:
             s.login(EMAIL_REMITENTE, EMAIL_PASSWORD)
             s.sendmail(EMAIL_REMITENTE, dest, msg.as_string())
     except Exception as e:
