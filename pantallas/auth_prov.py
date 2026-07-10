@@ -1,22 +1,23 @@
 # ═══════════════════════════════════════════════════════════════════
 #  pantallas/auth_prov.py — Login, registro y recupero especialista.
-#  El profesional puede elegir MÚLTIPLES rubros al registrarse.
 # ═══════════════════════════════════════════════════════════════════
 
 import json, urllib.request, urllib.parse
 import streamlit as st
 from config import LOGO_BIG, APP_NAME, CATEGORIAS
-from auth import login_proveedor, validar_email, validar_cuit, limpiar_cuit, sanitizar, hash_pw, generar_token_reset, token_valido
-from database import get_connection
+from auth import (login_proveedor, validar_email, validar_cuit, limpiar_cuit,
+                  sanitizar, hash_pw, generar_token_reset, token_valido)
+from database import ejecutar, get_rubros, agregar_rubro_personalizado
 from email_utils import enviar_email, email_bienvenida_proveedor, email_reset_password
 from ui_components import fx_header, btn_volver
+
 
 def auth_proveedor():
     st.markdown(LOGO_BIG, unsafe_allow_html=True)
     fx_header("ESPECIALISTA", "ACCESO")
     btn_volver("Volver al inicio", key_suffix="auth_prov", modo=None, auth_step="selector")
     st.write("")
-    _, col, _ = st.columns([1,2,1])
+    _, col, _ = st.columns([1, 2, 1])
     with col:
         st.markdown("#### Iniciá sesión")
         email_l = st.text_input("Email", key="prov_login_email", placeholder="empresa@mail.com")
@@ -43,6 +44,7 @@ def auth_proveedor():
             st.markdown("#### Registrar empresa")
             _registro_especialista()
 
+
 def _geocodificar(direccion):
     try:
         query = urllib.parse.urlencode({"q": direccion, "format": "json", "limit": "1"})
@@ -58,18 +60,34 @@ def _geocodificar(direccion):
         pass
     return None, None
 
+
 def _registro_especialista():
     st.write("")
     grupo_r = st.selectbox("Grupo de servicio *", list(CATEGORIAS.keys()), key="prov_reg_grupo")
-
-    # ── MÚLTIPLES RUBROS ─────────────────────────────────────────
+    rubros_disponibles = get_rubros(grupo_r)
     st.markdown("**Rubros / Actividades *** *(podés elegir más de uno)*")
-    rubros_sel = st.multiselect(
-        "Seleccioná tus especialidades",
-        CATEGORIAS[grupo_r],
-        key="prov_reg_rubros",
-        placeholder="Elegí uno o más rubros...",
-    )
+    rubros_sel = st.multiselect("Seleccioná tus especialidades", rubros_disponibles,
+                                key="prov_reg_rubros", placeholder="Elegí uno o más rubros...")
+
+    with st.expander("➕ Mi rubro no está en la lista — agregarlo"):
+        st.caption("El rubro que agregues quedará disponible para todos los especialistas.")
+        nuevo_rubro = st.text_input("Nombre del rubro nuevo", key="prov_nuevo_rubro",
+                                    placeholder="Ej: Herrería, Soldadura...", max_chars=60)
+        if st.button("AGREGAR RUBRO", key="btn_nuevo_rubro"):
+            if not nuevo_rubro.strip():
+                st.error("Escribí el nombre del rubro.")
+            elif nuevo_rubro.strip().title() in rubros_disponibles:
+                st.warning("Ese rubro ya existe.")
+            else:
+                if "rubros_nuevos_temp" not in st.session_state:
+                    st.session_state["rubros_nuevos_temp"] = []
+                nombre_limpio = nuevo_rubro.strip().title()
+                if nombre_limpio not in st.session_state["rubros_nuevos_temp"]:
+                    st.session_state["rubros_nuevos_temp"].append(nombre_limpio)
+                st.success(f"✅ '{nombre_limpio}' agregado. Seleccionalo arriba.")
+                st.rerun()
+    if st.session_state.get("rubros_nuevos_temp"):
+        st.info(f"Rubros nuevos: {', '.join(st.session_state['rubros_nuevos_temp'])}")
 
     razon_r     = st.text_input("Razón social *",       key="prov_reg_razon",  placeholder="Mi Empresa S.R.L.")
     cuit_r      = st.text_input("CUIT (sin guiones) *", key="prov_reg_cuit",   placeholder="20123456789")
@@ -86,75 +104,48 @@ def _registro_especialista():
 **TÉRMINOS Y CONDICIONES PARA ESPECIALISTAS — {APP_NAME.upper()}**
 *Versión vigente — Última actualización: Julio 2026*
 
-Al registrarse en {APP_NAME} como especialista, declarás haber leído, comprendido
-y aceptado en su totalidad los presentes Términos y Condiciones.
-
----
-
 **1. Objeto de la plataforma**
-{APP_NAME} es una plataforma digital de intermediación que facilita la conexión entre
-especialistas que ofrecen servicios del hogar o automotor y usuarios que los requieren.
-{APP_NAME} no es parte de la relación contractual entre el especialista y el usuario,
-actuando únicamente como intermediario tecnológico.
+{APP_NAME} es una plataforma digital de intermediación. Actúa únicamente como
+intermediario tecnológico entre especialistas y usuarios.
 
 **2. Presupuestos y costo de servicio**
-Los presupuestos son elaborados íntegramente por el especialista y reflejan su propio
-criterio profesional. {APP_NAME} no modifica el contenido de los mismos.
-No obstante, al momento de cerrar un presupuesto aceptado, la plataforma podrá
-incorporar un cargo adicional denominado **"Costo de servicio {APP_NAME}"**, el cual
-representará el canon por uso de la plataforma. Dicho cargo, en caso de aplicarse,
-será visible para el especialista en su panel bajo la opción **"Abonar costo de servicio"**,
+Los presupuestos son elaborados íntegramente por el especialista. {APP_NAME} no los
+modifica. Al momento de cerrar un presupuesto aceptado, la plataforma podrá incorporar
+un cargo adicional denominado **"Costo de servicio {APP_NAME}"**. Dicho cargo, en caso
+de aplicarse, será visible en el panel del especialista bajo **"Abonar costo de servicio"**
 con el correspondiente enlace de pago.
 
-> 📌 **Aclaración vigente:** A la fecha de estos términos, {APP_NAME} **no aplica ni
-> cobra** el ítem "Costo de servicio" a ningún especialista. La plataforma se encuentra
-> en etapa de crecimiento y este cargo podrá implementarse en el futuro únicamente cuando
-> sea necesario para costear el mantenimiento y desarrollo de la plataforma. Tanto
-> especialistas como usuarios serán notificados con un mínimo de **30 días de anticipación**
-> antes de cualquier implementación de este cargo.
+> 📌 **Aclaración vigente:** A la fecha, {APP_NAME} **no aplica ni cobra** el costo de
+> servicio. Este cargo podrá implementarse en el futuro solo cuando sea necesario para
+> costear el mantenimiento de la plataforma, con **30 días de anticipación** de aviso.
 
 **3. Obligaciones del especialista**
-El especialista se compromete a:
-- Brindar servicios de calidad y con la idoneidad profesional requerida.
-- Cumplir con los turnos acordados a través de la plataforma.
-- Documentar el trabajo realizado con fotografías del resultado final.
-- Brindar información veraz al momento del registro y en cada presupuesto.
-- Rendir el costo de servicio a {APP_NAME} cuando corresponda, en los plazos establecidos.
+- Brindar servicios de calidad y con idoneidad profesional.
+- Cumplir con los turnos acordados.
+- Documentar el trabajo con fotografías del resultado final.
+- Brindar información veraz al registrarse y en cada presupuesto.
 
 **4. Calificaciones**
-Al finalizar cada trabajo, el usuario podrá calificar al especialista con una puntuación
-del 1 al 5 y un comentario opcional. Las calificaciones son públicas y visibles para
-otros usuarios de la plataforma. El especialista no podrá solicitar la eliminación de
-calificaciones verídicas, pero podrá reportar aquellas que considere falsas u ofensivas
-para su revisión por parte de {APP_NAME}.
+Los usuarios podrán calificar al especialista con puntuación del 1 al 5 y comentario
+opcional. Las calificaciones son públicas y visibles para otros usuarios.
 
-**5. Suspensión y baja de cuenta**
-{APP_NAME} podrá suspender o dar de baja cuentas de especialistas que:
-- Acumulen calificaciones negativas reiteradas.
-- Incumplan con la rendición del costo de servicio cuando corresponda.
-- Brinden información falsa en el registro o en los presupuestos.
-- Violen cualquiera de los presentes términos y condiciones.
+**5. Suspensión de cuenta**
+{APP_NAME} podrá suspender cuentas por calificaciones negativas reiteradas, información
+falsa o incumplimiento de estos términos.
 
 **6. Responsabilidad**
-La calidad, idoneidad y resultado de los trabajos realizados son responsabilidad exclusiva
-del especialista. {APP_NAME} no asume responsabilidad alguna por daños, pérdidas o
-perjuicios derivados de la prestación del servicio.
+La calidad y resultado de los trabajos son responsabilidad exclusiva del especialista.
+{APP_NAME} no asume responsabilidad por daños derivados de la prestación del servicio.
 
-**7. Privacidad y protección de datos**
-Los datos de la empresa y del encargado ingresados serán tratados de forma confidencial
-y utilizados exclusivamente para el funcionamiento de la plataforma. No serán cedidos
-ni comercializados con terceros sin consentimiento expreso, en cumplimiento de la
-Ley N° 25.326 de Protección de Datos Personales de la República Argentina.
+**7. Privacidad**
+Los datos serán tratados conforme a la Ley N° 25.326 de Protección de Datos Personales.
 
 **8. Modificaciones**
-{APP_NAME} se reserva el derecho de modificar los presentes Términos y Condiciones
-notificando a los especialistas registrados con un mínimo de 15 días de anticipación.
-La continuación del uso de la plataforma luego de la notificación implicará la
-aceptación de los nuevos términos.
+{APP_NAME} podrá modificar estos términos con 15 días de anticipación.
 
-**9. Jurisdicción**
-Ante cualquier controversia derivada del uso de la plataforma, las partes se someten
-a la jurisdicción de los Tribunales Ordinarios de la Ciudad de Córdoba, República Argentina.
+**9. Plataforma y origen**
+{APP_NAME} opera en Córdoba, Argentina. Las relaciones entre especialistas y usuarios
+son estrictamente privadas. {APP_NAME} no interviene en conflictos entre las partes.
         """)
     acepta_tyc = st.checkbox("Leí y acepto los Términos y Condiciones *", key="prov_reg_tyc")
     st.write("")
@@ -173,26 +164,31 @@ a la jurisdicción de los Tribunales Ordinarios de la Ciudad de Córdoba, Repúb
         if err:
             st.error("Corregí: " + ", ".join(err))
         else:
-            lat, lon = _geocodificar(direccion_r)
-            # Guardamos los rubros como string separado por comas
+            lat, lon   = _geocodificar(direccion_r)
             rubros_str = ", ".join(rubros_sel)
-            conn = get_connection()
             try:
-                conn.execute(
+                ejecutar(
                     """INSERT INTO proveedores
                        (razon_social,rubros,grupo,cuit,direccion,encargado,contacto,email,password_hash,latitud,longitud)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (sanitizar(razon_r,100), rubros_str, grupo_r, limpiar_cuit(cuit_r),
                      sanitizar(direccion_r,150), sanitizar(encargado_r,80), sanitizar(contacto_r,30),
                      email_r.strip().lower(), hash_pw(pw_r), lat, lon)
                 )
-                conn.commit()
-                enviar_email(email_r.strip(), f"¡Bienvenido a {APP_NAME}!", encargado_r, email_bienvenida_proveedor(razon_r))
-                st.success("✅ ¡Empresa registrada! Revisá tu email e iniciá sesión.")
+                prov_nuevo = ejecutar("SELECT id FROM proveedores WHERE email=%s",
+                                      (email_r.strip().lower(),), fetch="one")
+                if prov_nuevo and st.session_state.get("rubros_nuevos_temp"):
+                    for rubro_nuevo in st.session_state["rubros_nuevos_temp"]:
+                        agregar_rubro_personalizado(grupo_r, rubro_nuevo, prov_nuevo["id"])
+                    st.session_state["rubros_nuevos_temp"] = []
+                enviar_email(email_r.strip(), f"¡Bienvenido a {APP_NAME}!", encargado_r,
+                             email_bienvenida_proveedor(razon_r))
+                st.success("✅ ¡Empresa registrada! Iniciá sesión.")
                 st.session_state["mostrar_reg_especialista"] = False
                 st.rerun()
-            except Exception:
+            except Exception as e:
                 st.error("Ese CUIT o email ya está registrado.")
+
 
 def pantalla_reset_proveedor():
     st.markdown(LOGO_BIG, unsafe_allow_html=True)
@@ -200,12 +196,12 @@ def pantalla_reset_proveedor():
     btn_volver("Volver al login", key_suffix="reset_prov", pantalla_reset=False, reset_modo=None)
     st.write("")
     params    = st.query_params
-    token_url = params.get("reset_token","")
-    modo_url  = params.get("reset_modo","")
+    token_url = params.get("reset_token", "")
+    modo_url  = params.get("reset_modo", "")
     if token_url and modo_url == "proveedor":
         _nueva_pw_proveedor(token_url)
         return
-    _, col, _ = st.columns([1,2,1])
+    _, col, _ = st.columns([1, 2, 1])
     with col:
         st.markdown("Ingresá tu email y te enviamos un link para crear una nueva contraseña.")
         email_r = st.text_input("Email de tu cuenta", key="reset_email_prov")
@@ -213,23 +209,26 @@ def pantalla_reset_proveedor():
             if not validar_email(email_r):
                 st.error("Email inválido.")
             else:
-                conn = get_connection()
-                row  = conn.execute("SELECT id,encargado FROM proveedores WHERE email=?", (email_r.strip().lower(),)).fetchone()
+                row = ejecutar("SELECT id,encargado FROM proveedores WHERE email=%s",
+                               (email_r.strip().lower(),), fetch="one")
                 st.success("Si el email existe, te enviamos el link en unos segundos.")
                 if row:
                     token, expiry = generar_token_reset()
-                    conn.execute("UPDATE proveedores SET reset_token=?,reset_expiry=? WHERE id=?", (token, expiry, row[0]))
-                    conn.commit()
-                    enviar_email(email_r.strip(), f"Recuperá tu contraseña — {APP_NAME}", row[1] or "Especialista", email_reset_password(row[1] or "Especialista", token, "proveedor"))
+                    ejecutar("UPDATE proveedores SET reset_token=%s,reset_expiry=%s WHERE id=%s",
+                             (token, expiry, row["id"]))
+                    enviar_email(email_r.strip(), f"Recuperá tu contraseña — {APP_NAME}",
+                                 row["encargado"] or "Especialista",
+                                 email_reset_password(row["encargado"] or "Especialista", token, "proveedor"))
+
 
 def _nueva_pw_proveedor(token):
-    conn = get_connection()
-    row  = conn.execute("SELECT id,encargado,reset_expiry FROM proveedores WHERE reset_token=?", (token,)).fetchone()
-    if not row or not token_valido(row[2]):
+    row = ejecutar("SELECT id,encargado,reset_expiry FROM proveedores WHERE reset_token=%s",
+                   (token,), fetch="one")
+    if not row or not token_valido(row["reset_expiry"]):
         st.error("El link expiró o no es válido.")
         return
-    st.success(f"Hola {row[1]}! Creá tu nueva contraseña.")
-    _, col, _ = st.columns([1,2,1])
+    st.success(f"Hola {row['encargado']}! Creá tu nueva contraseña.")
+    _, col, _ = st.columns([1, 2, 1])
     with col:
         pw_n  = st.text_input("Nueva contraseña (mín. 6 caracteres)", type="password", key="new_pw_prov")
         pw_n2 = st.text_input("Repetir contraseña",                   type="password", key="new_pw_prov2")
@@ -237,8 +236,8 @@ def _nueva_pw_proveedor(token):
             if len(pw_n) < 6:   st.error("Mínimo 6 caracteres.")
             elif pw_n != pw_n2: st.error("Las contraseñas no coinciden.")
             else:
-                conn.execute("UPDATE proveedores SET password_hash=?,reset_token=NULL,reset_expiry=NULL WHERE id=?", (hash_pw(pw_n), row[0]))
-                conn.commit()
+                ejecutar("UPDATE proveedores SET password_hash=%s,reset_token=NULL,reset_expiry=NULL WHERE id=%s",
+                         (hash_pw(pw_n), row["id"]))
                 st.query_params.clear()
                 st.success("✅ ¡Contraseña actualizada!")
                 st.session_state["pantalla_reset"] = False
