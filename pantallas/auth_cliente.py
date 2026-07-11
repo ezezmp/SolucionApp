@@ -58,6 +58,14 @@ def _registro_usuario():
     pw_r        = st.text_input("Contraseña * (mín. 6 caracteres)", type="password", key="cli_reg_pw")
     pw_r2       = st.text_input("Repetir contraseña *",             type="password", key="cli_reg_pw2")
 
+    st.markdown("**Foto de perfil** *(opcional)*")
+    foto_perfil_file = st.file_uploader(
+        "Subí una foto tuya", type=["jpg","jpeg","png","webp"],
+        key="cli_reg_foto", help="Opcional — podés agregarla después"
+    )
+    if foto_perfil_file:
+        st.image(foto_perfil_file, width=100, caption="Vista previa")
+
     with st.expander("📄 Términos y Condiciones — leer antes de registrarse"):
         st.markdown(f"""
 **TÉRMINOS Y CONDICIONES DE USO — {APP_NAME.upper()}**
@@ -147,11 +155,13 @@ entre las partes, los cuales deberán resolverse directamente entre ellas.
             st.error("Corregí: " + ", ".join(err))
         else:
             try:
+                from fotos import guardar_foto
+                ruta_foto = guardar_foto(foto_perfil_file) if foto_perfil_file else None
                 ejecutar(
-                    "INSERT INTO clientes (nombre,apellido,dni,domicilio,localidad,provincia,email,password_hash) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+                    "INSERT INTO clientes (nombre,apellido,dni,domicilio,localidad,provincia,email,password_hash,foto_perfil) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                     (sanitizar(nombre_r,50), sanitizar(apellido_r,50), limpiar_dni(dni_r),
                      sanitizar(domicilio_r,150), sanitizar(localidad_r,80), sanitizar(provincia_r,80),
-                     email_r.strip().lower(), hash_pw(pw_r))
+                     email_r.strip().lower(), hash_pw(pw_r), ruta_foto)
                 )
                 enviar_email(email_r.strip(), f"¡Bienvenido a {APP_NAME}!", nombre_r,
                              email_bienvenida_cliente(nombre_r))

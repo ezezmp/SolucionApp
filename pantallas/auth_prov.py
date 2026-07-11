@@ -102,6 +102,15 @@ def _registro_especialista():
     pw_r        = st.text_input("Contraseña * (mín. 6 caracteres)", type="password", key="prov_reg_pw")
     pw_r2       = st.text_input("Repetir contraseña *",             type="password", key="prov_reg_pw2")
 
+    st.markdown("**Foto de perfil / empresa** *(opcional)*")
+    foto_perfil_file = st.file_uploader(
+        "Subí una foto del encargado o logo de la empresa",
+        type=["jpg","jpeg","png","webp"],
+        key="prov_reg_foto", help="Opcional — ayuda a generar más confianza en los usuarios"
+    )
+    if foto_perfil_file:
+        st.image(foto_perfil_file, width=100, caption="Vista previa")
+
     with st.expander("📄 Términos y Condiciones para Especialistas — leer antes de registrarse"):
         st.markdown(f"""
 **TÉRMINOS Y CONDICIONES PARA ESPECIALISTAS — {APP_NAME.upper()}**
@@ -170,14 +179,16 @@ son estrictamente privadas. {APP_NAME} no interviene en conflictos entre las par
             lat, lon   = _geocodificar(direccion_r)
             rubros_str = ", ".join(rubros_sel)
             try:
+                from fotos import guardar_foto
+                ruta_foto = guardar_foto(foto_perfil_file) if foto_perfil_file else None
                 ejecutar(
                     """INSERT INTO proveedores
-                       (razon_social,rubros,grupo,cuit,direccion,localidad,provincia,encargado,contacto,email,password_hash,latitud,longitud)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                       (razon_social,rubros,grupo,cuit,direccion,localidad,provincia,encargado,contacto,email,password_hash,latitud,longitud,foto_perfil)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (sanitizar(razon_r,100), rubros_str, grupo_r, limpiar_cuit(cuit_r),
                      sanitizar(direccion_r,150), sanitizar(localidad_r,80), sanitizar(provincia_r,80),
                      sanitizar(encargado_r,80), sanitizar(contacto_r,30),
-                     email_r.strip().lower(), hash_pw(pw_r), lat, lon)
+                     email_r.strip().lower(), hash_pw(pw_r), lat, lon, ruta_foto)
                 )
                 prov_nuevo = ejecutar("SELECT id FROM proveedores WHERE email=%s",
                                       (email_r.strip().lower(),), fetch="one")
